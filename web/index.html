@@ -166,7 +166,7 @@ code, .cmd { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; fo
 .facts span { color: var(--ink-3); font-size: 13px; }
 @media (max-width: 640px) { .facts { grid-template-columns: repeat(2, 1fr); } .facts div:nth-child(3) { border-left: 0; padding-left: 0; } }
 .lanes text { fill: var(--ink-2); font-size: 11.5px; }
-.lanes .lbl { fill: var(--ink); }
+.lanes .lbl { fill: var(--ink); paint-order: stroke; stroke: var(--paper); stroke-width: 4px; stroke-linejoin: round; }
 .empty { padding: 60px 0; color: var(--ink-2); max-width: 60ch; }
 footer { padding: 32px 0 48px; color: var(--ink-3); font-size: 13px; border-top: 1px solid var(--rule); }
 @media (max-width: 520px) { .wrap { padding: 0 16px; } .ledger .amt { font-size: 18px; } .ledger li.total .amt { font-size: 22px; } }
