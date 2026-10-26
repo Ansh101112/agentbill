@@ -75,10 +75,13 @@ Check: install the skill in Alan (Skills → Import) and screenshot it working.
 
 ## Session log
 
-| Task | Alan session | Agent / model | Result |
-|---|---|---|---|
-| T1 | | | |
-| T2 | | | |
-| T3 | | | |
-| T4 | | | |
-| T5 | | | |
+Usage comes from Alan's own run logs (`%LOCALAPPDATA%\Alan\production\runs\<run>\log.jsonl`, last `_alan/turn_usage` of each run).
+
+| Task | Alan run | Agent / model | Usage | Result |
+|---|---|---|---|---|
+| Setup | 4 runs, 26 Oct 14:59–15:13 | Alan Code | — | Failed with "opencode serve did not open a session within 60000 ms". Diagnosed and reported in the Alan Discord #bug-report; fixed by fully restarting Alan |
+| T1 (first try) | `fc9bb920`, 15:30 | Alan Code, DeepSeek V4 Pro | 5 calls, 30k input, 98k cache read, 1k output | Surveyed the repo and asked which task to start; no code written. Re-run pending |
+| T2 | `59c61712`, 15:46–16:03 | Alan Code, DeepSeek V4 Pro | 47 calls, 103k input, 2.68M cache read, 32k output (≈ $0.37 at list price) | OpenCode parser, SQLite fixture, 7 tests. Follow-up in the same session swapped `better-sqlite3`/`sql.js` for built-in `node:sqlite`. Reviewed and merged in `07b373a` with fixes: read-only access, per-message tokens for the message + part layout, lazy load |
+| T3 | `ade7fb74`, 16:08– | Alan Code | | In progress |
+| T4 | | | | |
+| T5 | | | | |
