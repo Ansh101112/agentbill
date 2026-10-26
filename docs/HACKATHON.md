@@ -6,7 +6,7 @@ Every rule from the OpenFire Luma page, the Alan Discord FAQ and the town hall r
 
 - [x] **Solo build.** Only Anshuman commits to this repo.
 - [x] **Built during OpenFire.** First commit after Mon Oct 26, 1:00 PM IST. `git log --reverse` proves it.
-- [x] **Built using Alan.** Planning on the Alan task board, implementation tasks run as Alan sessions, PRs reviewed by Alan's Review Agent. Evidence: `docs/ALAN.md` (task pack and session log) and screenshots in `docs/img/alan-*.png`.
+- [x] **Built using Alan.** Five tickets (tests + CI, OpenCode parser, Alan Code parser, PR cost + hook + Action, Alan skill + automation) ran as Alan Code sessions on DeepSeek V4 Pro / V4.1 Flash in the Alan desktop app and were reviewed before merging. Evidence: `docs/ALAN.md` (prompts, run ids, usage) and AgentBill's own `sessions --agent alan-code`. Still to add: a screenshot of the Alan app with these sessions.
 - [x] **Open models (preferred).** The replay judge runs on DeepSeek V4.1 Flash, GLM-5.3 and Kimi. Alan sessions use open models from the Alan model picker. Both are named in the README.
 - [x] **Not a basic CRUD app.** Log parsing across agents, a cost model with prompt-cache economics, carry-cost analysis, and an open-model replay agent.
 - [ ] **Open source.** MIT license added; repo goes public at submission.
@@ -20,7 +20,7 @@ Every rule from the OpenFire Luma page, the Alan Discord FAQ and the town hall r
 | Engineering depth | Tests on fixtures, CI, typed core, live price feed with offline fallback, MCP server |
 | Thought process | `docs/DECISIONS.md` written as the build goes; README "How it works" section |
 | Regular commits | Small commits every block; build-in-public posts link to them |
-| Good README | Problem, demo GIF, quick start, how it works, architecture diagram, limitations |
+| Good README | Problem, screenshots, quick start, how it works, architecture diagram, limitations, Built with Alan |
 
 ## Submission
 
