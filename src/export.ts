@@ -4,10 +4,12 @@ import { extname } from 'node:path';
 import type { SessionReport } from './analyze.ts';
 import type { Pricer } from './pricing.ts';
 import { buildSummary, sessionDetail, type SessionDetail, type Summary } from './summary.ts';
+import { loadLatestReplay, type ReplayResult } from './replay/run.ts';
 
 export interface ExportFile {
   summary: Summary;
   details: Record<string, SessionDetail>;
+  replay: ReplayResult | null;
   anonymized: boolean;
 }
 
@@ -18,7 +20,7 @@ export function exportData(reports: SessionReport[], pricer: Pricer, file: strin
   const top = [...reports].sort((a, b) => b.cost - a.cost).slice(0, DETAIL_SESSIONS);
   const details: Record<string, SessionDetail> = {};
   for (const r of top) details[r.session.id] = sessionDetail(r);
-  const out: ExportFile = { summary, details, anonymized: anonymize };
+  const out: ExportFile = { summary, details, replay: loadLatestReplay(), anonymized: anonymize };
   writeFileSync(file, JSON.stringify(anonymize ? scrub(out) : out));
 }
 
@@ -76,5 +78,17 @@ function scrub(data: ExportFile): ExportFile {
       markers: d.markers.map((m) => ({ ...m, title: m.title.replace(/ [A-Za-z]:?[\\/][^\s]+|\S+\/\S+/g, ' a file') })),
     };
   }
-  return { summary, details, anonymized: true };
+  const replay = data.replay && {
+    ...data.replay,
+    cases: data.replay.cases.map((c) => ({
+      ...c,
+      sessionId: id(c.sessionId),
+      sessionTitle: sessionNames.get(c.sessionId) ?? 'Session',
+      lastRequest: '',
+      actual: c.actual.map((a) => ({ ...a, target: target(a.target), input: '' })),
+      proposed: c.proposed && { ...c.proposed, target: target(c.proposed.target), why: '' },
+      reason: '',
+    })),
+  };
+  return { summary, details, replay, anonymized: true };
 }

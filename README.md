@@ -1,0 +1,131 @@
+# AgentBill
+
+**See what your coding agents really cost, where the tokens leak, and which steps an open model could do for a fraction of the price.**
+
+AgentBill reads the session logs that Claude Code and Codex already write on your machine, prices every model call at live list prices, and finds the patterns that quietly inflate the bill. Its replay agent then has an open model (DeepSeek, GLM, Kimi) redo your most expensive steps and checks whether it makes the same move.
+
+No proxy, no account, no setup. Nothing leaves your machine unless you run `replay`.
+
+Built solo in 30 hours for **OpenFire by Alan AI** (Oct 26–27, 2026).
+
+<!-- demo: docs/img/demo.gif -->
+
+## Why
+
+Agent runs look cheap one call at a time. Nobody sees the bill come together:
+
+- A 40,000-character install log read early in a session is re-sent on every later call until the context is compacted. It can cost more than the code change it was for.
+- Step away for ten minutes and the prompt cache expires. The next call rewrites the whole 800k-token context at the cache-write price.
+- Agents re-read files they already have, and retry failing commands in loops.
+- Every step pays frontier prices, even the routine ones a cheap open model would get right.
+
+On my own history (133 sessions over 11 weeks) AgentBill found **$4,761 of spend at list prices, and $1,076 (23%) leaked to avoidable patterns.**
+
+## Quick start
+
+```bash
+git clone https://github.com/Ansh101112/agentbill && cd agentbill
+npm install && npm run build
+node dist/cli.js            # the report
+node dist/cli.js serve      # the dashboard on http://localhost:4477
+```
+
+Needs Node 22.18 or newer. During development you can run the TypeScript directly: `node src/cli.ts`.
+
+## What you get
+
+### The report
+
+```
+AgentBill · 133 sessions · 2026-08-12 → 2026-10-26 · prices: live
+
+  Spend        $4761.30  24k model calls, 29k tool calls
+  Leaked       $1075.44  23% of spend went to avoidable patterns
+  Cache hits   97%  of input tokens were served from the prompt cache
+
+  Where it leaked
+    Prompt cache rebuilt after idle gaps            $802.02  440×
+    Heavy outputs re-sent on later calls            $246.98  540×
+    Unchanged files read again                       $24.61  247×
+    Retry loops on failing steps                      $7.54  25×
+
+  Same tokens on an open model
+    deepseek/deepseek-v4.1-flash          $148.64  −$4612.66
+    z-ai/glm-5.3                          $612.97  −$4148.33
+```
+
+### The dashboard
+
+`agentbill serve` opens a statement of your agent spend: the bill as line items, spend and leaks by day, leaks by pattern and by model, every session, and what open models would charge for the same tokens.
+
+Each session opens to a timeline of **what every call carried**: the context curve per call, with each heavy tool output drawn as a bar from the call that read it to the last call that still re-sent it. Compactions, cache rebuilds and retry loops are marked on the same axis.
+
+### The replay agent
+
+```bash
+export OPENROUTER_API_KEY=...        # or put it in .env
+node dist/cli.js replay --steps 24
+```
+
+The "same tokens, cheaper model" number is only a ceiling. The replay agent checks it:
+
+1. Picks the most expensive decision steps across your costliest sessions.
+2. Rebuilds what the agent had seen at that moment from the log: the request, recent turns, tool results.
+3. Asks an open model (default **DeepSeek V4.1 Flash**) for its next action.
+4. Compares it with what the frontier model actually did. Identical tool and target count as a match without a model call; anything else goes to a judge model (default **GLM-5.3**) that rules *same*, *equivalent* or *different*.
+5. Reports agreement per kind of step (reads, searches, shell, edits), and how much spend sits in step kinds the open model gets right at least 80% of the time.
+
+A 24-step replay costs a few cents. Use `--dry-run` to see the steps without calling any model, or point `AGENTBILL_BASE_URL` at any OpenAI-compatible API (a local Ollama works).
+
+### An MCP server, so agents can watch their own spend
+
+```json
+{ "mcpServers": { "agentbill": { "command": "node", "args": ["/path/to/agentbill/dist/cli.js", "mcp"] } } }
+```
+
+Tools:
+
+- `agentbill_current_session`: spend, leaks and context size of the session running in a folder.
+- `agentbill_budget_check`: compares spend with a budget and says keep going, compact, or stop.
+- `agentbill_report`: the last N days across all sessions, plus the latest replay result.
+
+Add it to Claude Code, Codex, OpenCode or Alan (Settings, Plugins, MCP, Add custom connector).
+
+## How it works
+
+```
+ ~/.claude/projects/**.jsonl ─┐                       ┌─> CLI report
+ ~/.codex/sessions/**.jsonl ──┼─> parsers ─> Session ─┼─> dashboard (agentbill serve)
+ (OpenCode, Alan Code: next)  ┘    one model   │      ├─> MCP server (agentbill mcp)
+                                               │      └─> anonymised export (demo site)
+      OpenRouter /models ─> Pricer ────────────┤
+      (24h cache, offline snapshot)            ▼
+                                       analyze: cost per call, carry cost,
+                                       cache rebuilds, re-reads, retry loops
+                                               │
+                                               ▼
+                              replay: rebuild step ─> open model ─> judge ─> routability
+```
+
+- **Parsers** turn each agent's log into one model: sessions, model calls with token usage, and tool calls with their result sizes. Claude Code writes one line per content block with the same usage repeated, so responses are counted once by message id. Codex reports OpenAI-style usage, where input includes cached tokens, so it is split back out.
+- **Pricing** comes from OpenRouter's public model list (no key needed), cached for a day, with a bundled snapshot for offline use. Gateway spellings like `claude-opus-5-pool` or `FW-GLM-5.2` are normalised to priced models.
+- **Carry cost** charges each tool output for every later call that re-sent it, at the blended per-token rate that call actually paid (fresh, cache-read and cache-write input), until the next compaction.
+- **Cache rebuilds** are calls where most of a large context was written to cache rather than read. After 5+ idle minutes it is an expiry; otherwise something early in the prompt changed (model switch, tool list, rewind).
+- **Context bloat** is reported as advice only and never counted as a leak: some tasks need the context.
+
+Design notes are in [docs/DECISIONS.md](docs/DECISIONS.md).
+
+## Limitations
+
+- Costs are at list price per token. Subscriptions, enterprise discounts and gateways bill differently; AgentBill shows what the work would cost on metered APIs.
+- Logs don't contain the system prompt or tool schemas, so the replay agent works from a rebuilt context. It measures whether the open model would make the same next move, not whether it would finish the whole task.
+- Carry cost for subagent outputs is not computed yet (main loop only).
+- Token counts for tool outputs are estimated from characters (3.6 per token).
+
+## Built with Alan
+
+OpenFire asks participants to build with Alan. The task pack and the log of Alan sessions are in [docs/ALAN.md](docs/ALAN.md). The hackathon checklist is in [docs/HACKATHON.md](docs/HACKATHON.md), and the build plan in [docs/PLAN.md](docs/PLAN.md).
+
+## License
+
+MIT

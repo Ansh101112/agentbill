@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import type { SessionReport } from './analyze.ts';
 import type { Pricer } from './pricing.ts';
 import { buildSummary, sessionDetail } from './summary.ts';
+import { loadLatestReplay } from './replay/run.ts';
 
 interface ServeOptions {
   port: number;
@@ -30,6 +31,8 @@ export async function serve({ port, load }: ServeOptions) {
         res.end(page());
       } else if (url.pathname === '/api/summary') {
         json(summary);
+      } else if (url.pathname === '/api/replay') {
+        json(loadLatestReplay());
       } else if (url.pathname.startsWith('/api/session/')) {
         const id = decodeURIComponent(url.pathname.slice('/api/session/'.length));
         const r = state.reports.find((x) => x.session.id === id);

@@ -250,6 +250,7 @@ async function loadSummary() {
     if (r.ok && (r.headers.get('content-type') || '').includes('json')) {
       MODE = 'server';
       DATA = { summary: await r.json() };
+      try { DATA.replay = await (await fetch('/api/replay', { cache: 'no-store' })).json(); } catch { DATA.replay = null; }
       return;
     }
   } catch {}
@@ -329,6 +330,11 @@ function renderOverview() {
     </table></div>
   </section>
 
+  <section class="block" aria-labelledby="h-replay">
+    <h2 id="h-replay">Can an open model do these steps?</h2>
+    <div id="replay"></div>
+  </section>
+
   <section class="block" aria-labelledby="h-open">
     <h2 id="h-open">The same tokens on open models</h2>
     <p class="lede">Your actual bill against open-weight models at their list prices, for the same token counts. This is a ceiling on savings, not a promise: run <span class="cmd">agentbill replay</span> to have an open model redo your expensive steps and see how often it makes the same move.</p>
@@ -341,6 +347,33 @@ function renderOverview() {
   drawFindings(s.topFindings);
   drawSessions(s.sessions);
   drawOpenModels(s.whatIf, t.cost);
+  drawReplay(DATA.replay);
+}
+
+const VERDICT = { same: 'Same move', equivalent: 'Equivalent', different: 'Different', error: 'Failed' };
+function drawReplay(rp) {
+  const host = $('#replay');
+  if (!rp || !rp.cases?.length) {
+    host.innerHTML = '<p class="lede">The replay agent takes your most expensive steps, rebuilds what the agent had seen, and asks an open model for its next move. A judge model then checks whether the two moves match. Run <span class="cmd">agentbill replay</span> with an OpenRouter key to fill this in.</p>';
+    return;
+  }
+  const scored = rp.cases.filter((c) => c.verdict !== 'error');
+  const counts = { same: 0, equivalent: 0, different: 0 };
+  for (const c of scored) counts[c.verdict]++;
+  const rt = rp.routable;
+  host.innerHTML = `
+    <p class="lede">${esc(rp.model)} replayed ${rp.cases.length} of your most expensive steps; ${esc(rp.judgeModel)} judged each move. The whole replay cost ${moneyExact(rp.replaySpend)}.</p>
+    <ul class="ledger" style="max-width:720px">
+      <li><span class="what">Matched the frontier model's move<small>${counts.same} identical, ${counts.equivalent} equivalent, ${counts.different} different</small></span><span class="lead"></span><span class="amt">${Math.round(rp.agreement * 100)}%</span></li>
+      <li class="total"><span class="what">Spend you could route to ${esc(rp.model.split('/')[1])}<small>Step kinds with at least ${Math.round(rt.threshold * 100)}% agreement: ${moneyExact(rt.spend)} of spend (${Math.round(rt.shareOfSpend * 100)}%) would cost ${moneyExact(rt.openCost)}</small></span><span class="lead"></span><span class="amt" style="color:var(--save)">${moneyExact(rt.saved)}</span></li>
+    </ul>
+    <div class="tablewrap" style="margin-top:22px"><table>
+      <thead><tr><th scope="col">Step kind</th><th scope="col" class="num">Steps</th><th scope="col" class="num">Agreement</th><th scope="col" class="num">Spend on this kind</th><th scope="col" class="num">On the open model</th></tr></thead>
+      <tbody>${rp.byKind.map((k) => `<tr style="cursor:default"><td>${esc(k.kind)}</td><td class="num">${k.n}</td><td class="num">${Math.round(k.agreement * 100)}%</td><td class="num">${money(k.spend)}</td><td class="num">${money(k.openCost)}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <ol class="findings" style="margin-top:22px">${rp.cases.slice(0, 12).map((c) => `<li class="${c.verdict === 'different' || c.verdict === 'error' ? 'adv' : ''}"><span class="amt">${VERDICT[c.verdict]}</span>
+      <span class="t">${esc(c.actual[0] ? c.actual[0].tool + ': ' + c.actual[0].target : '')}</span>
+      <span class="d">Open model chose ${esc(c.proposed ? c.proposed.tool + ': ' + c.proposed.target : 'nothing')}. ${esc(c.reason)} Original step cost ${moneyExact(c.originalCost)} on ${esc(c.originalModel)}.</span></li>`).join('')}</ol>`;
 }
 
 function renderChrome() {

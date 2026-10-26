@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 // agentbill: what your coding agents really cost, and where the tokens leak.
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { analyzeSession, fmtTokens, usd, type SessionReport } from './analyze.ts';
 import { loadPriceBook, Pricer } from './pricing.ts';
@@ -14,6 +17,8 @@ Usage
   agentbill sessions          One line per session
   agentbill session <id>      Timeline, heaviest outputs and findings for one session
   agentbill serve             Open the dashboard (http://localhost:4477)
+  agentbill replay            Have an open model redo your expensive steps and judge whether it matched
+  agentbill mcp               Run as an MCP server so agents can check their own spend
   agentbill export <file>     Write the dashboard data as JSON (add --anonymize to share it)
 
 Options
@@ -24,7 +29,23 @@ Options
   --json            Machine-readable output
   --offline         Don't fetch live prices; use the cached or bundled list
   --port <n>        Dashboard port (default 4477)
+
+Replay options (needs OPENROUTER_API_KEY, or AGENTBILL_BASE_URL + AGENTBILL_API_KEY for any OpenAI-compatible API)
+  --model <id>      Open model that replays the steps (default deepseek/deepseek-v4.1-flash)
+  --judge <id>      Model that judges equivalence (default z-ai/glm-5.3)
+  --steps <n>       How many expensive steps to replay (default 24)
+  --threshold <x>   Agreement needed before a step kind counts as routable (default 0.8)
+  --dry-run         Rebuild the steps and show them without calling any model
 `;
+
+// Keys can live in ./.env or ~/.agentbill/.env.
+for (const f of ['.env', join(homedir(), '.agentbill', '.env')]) {
+  try {
+    if (existsSync(f)) process.loadEnvFile(f);
+  } catch {
+    // Unreadable .env: ignore, the env may already be set.
+  }
+}
 
 const color = process.stdout.isTTY && !process.env.NO_COLOR;
 const c = (code: number) => (s: string) => (color ? `\x1b[${code}m${s}\x1b[0m` : s);
@@ -161,12 +182,21 @@ async function main() {
       offline: { type: 'boolean' },
       port: { type: 'string' },
       anonymize: { type: 'boolean' },
+      model: { type: 'string' },
+      judge: { type: 'string' },
+      steps: { type: 'string' },
+      threshold: { type: 'string' },
+      'dry-run': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
   });
   const cmd = positionals[0] ?? 'report';
   if (values.help || cmd === 'help') return void console.log(HELP);
 
+  if (cmd === 'mcp') {
+    const { runMcp } = await import('./mcp.ts');
+    return runMcp();
+  }
   if (cmd === 'serve') {
     const { serve } = await import('./server.ts');
     return serve({ port: Number(values.port ?? 4477), load: () => load(values) });
@@ -193,6 +223,18 @@ async function main() {
       if (!r) throw new Error(`No session starting with "${id}". Run agentbill sessions to list them.`);
       if (values.json) console.log(JSON.stringify(sessionDetail(r), null, 2));
       else printSession(r);
+      break;
+    }
+    case 'replay': {
+      const { runReplayCommand } = await import('./replay/command.ts');
+      await runReplayCommand(reports, pricer, {
+        model: (values.model as string) ?? 'deepseek/deepseek-v4.1-flash',
+        judgeModel: (values.judge as string) ?? 'z-ai/glm-5.3',
+        steps: Number(values.steps ?? 24),
+        threshold: Number(values.threshold ?? 0.8),
+        dryRun: !!values['dry-run'],
+        json: !!values.json,
+      });
       break;
     }
     case 'export': {
