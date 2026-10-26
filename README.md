@@ -8,7 +8,7 @@ No proxy, no account, no setup. Nothing leaves your machine unless you run `repl
 
 Built solo in 30 hours for **OpenFire by Alan AI** (Oct 26–27, 2026), with Alan agents doing a share of the work (see [Built with Alan](#built-with-alan)).
 
-**Live demo:** _link goes here after deploy_ (anonymised real sessions, no install) · **Demo video:** _link goes here_
+**Live demo:** [agentbill-topaz.vercel.app](https://agentbill-topaz.vercel.app) (137 anonymised real sessions, no install) · **Demo video:** _link goes here_
 
 ![The statement: spend, leaks, and what open models would charge](docs/img/statement.png)
 

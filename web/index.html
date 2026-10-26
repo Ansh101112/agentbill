@@ -245,7 +245,9 @@ const niceMax = (v) => {
 
 // ---------- data ----------
 async function loadSummary() {
-  try {
+  // The live API only exists under `agentbill serve`; a hosted demo goes straight to data.json.
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  if (local) try {
     const r = await fetch('/api/summary', { cache: 'no-store' });
     if (r.ok && (r.headers.get('content-type') || '').includes('json')) {
       MODE = 'server';

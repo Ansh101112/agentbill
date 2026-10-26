@@ -25,7 +25,7 @@ Every rule from the OpenFire Luma page, the Alan Discord FAQ and the town hall r
 ## Submission
 
 - [ ] Public GitHub repo with detailed README (README done; repo still private, flip at submission)
-- [ ] Working link: dashboard demo deployed to Vercel (demo mode, sample data)
+- [x] Working link: https://agentbill-topaz.vercel.app (dashboard on 137 anonymised real sessions)
 - [ ] 1–2 minute demo video: problem, working product, architecture
 - [ ] X quote-post of the official @tryAlanAI launch post (goes live Tue ~7:30 PM IST) with the video attached
 - [ ] Submission form: name, project name, contact, GitHub repo, X quote-post link, demo video link

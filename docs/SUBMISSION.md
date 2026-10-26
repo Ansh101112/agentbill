@@ -5,10 +5,11 @@ Everything needed on Tue Oct 27. Building ends 8:00 PM IST; the form closes 10:0
 ## Before 7:30 PM
 
 - [ ] Run the replay once with a key so the dashboard shows real agreement numbers: `OPENROUTER_API_KEY=... node src/cli.ts replay --steps 24`
-- [ ] Rebuild the demo with the replay included: `node scripts/build-demo.ts`, then redeploy `site/`
+- [ ] Rebuild the demo with the replay included: `node scripts/build-demo.ts`, then `cd site && vercel deploy --prod --yes`
 - [ ] Record the demo video (script below), 1–2 minutes, 1080p
 - [ ] Make the GitHub repo public
-- [ ] Put the demo and video links at the top of the README
+- [x] Demo link at the top of the README
+- [ ] Video link at the top of the README
 
 ## At 7:30 PM: the quote post
 
@@ -19,6 +20,7 @@ built agentbill for openfire.
 it reads ur coding agent logs (claude code, codex, opencode, alan code), prices every call, and shows where the money leaked.
 then it has an open model redo ur expensive steps to see if u even needed the frontier one.
 repo: github.com/Ansh101112/agentbill
+demo: agentbill-topaz.vercel.app
 @tryAlanAI @prasad_pilla
 ```
 
@@ -32,7 +34,7 @@ repo: github.com/Ansh101112/agentbill
 | GitHub repository | https://github.com/Ansh101112/agentbill |
 | X quote-post link | _paste after posting_ |
 | Demo video link | _paste after uploading_ |
-| Working link | _the Vercel demo URL_ |
+| Working link | https://agentbill-topaz.vercel.app |
 
 ## Demo video script (about 90 seconds)
 
