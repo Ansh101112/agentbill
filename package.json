@@ -1,0 +1,37 @@
+{
+  "name": "agentbill",
+  "version": "0.1.0",
+  "description": "See what your coding agents really cost, where the tokens leak, and which steps an open model could have done for a fraction of the price.",
+  "type": "module",
+  "bin": {
+    "agentbill": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "web"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "node src/cli.ts",
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "keywords": [
+    "coding-agents",
+    "claude-code",
+    "codex",
+    "opencode",
+    "token-cost",
+    "finops",
+    "open-models",
+    "mcp"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
