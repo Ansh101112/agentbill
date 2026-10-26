@@ -2,7 +2,7 @@
 // agentbill: what your coding agents really cost, and where the tokens leak.
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { analyzeSession, fmtTokens, usd, type SessionReport } from './analyze.ts';
 import { loadPriceBook, Pricer } from './pricing.ts';
@@ -20,15 +20,23 @@ Usage
   agentbill replay            Have an open model redo your expensive steps and judge whether it matched
   agentbill mcp               Run as an MCP server so agents can check their own spend
   agentbill export <file>     Write the dashboard data as JSON (add --anonymize to share it)
+  agentbill pr-cost           Summarise "Agent-Cost:" commit trailers and comment on the PR
+  agentbill hook install      Install a prepare-commit-msg hook that records agent spend
 
 Options
   --days <n>        Only sessions active in the last n days
   --project <path>  Only sessions started under this folder
-  --agent <list>    claude-code,codex
+  --agent <list>    claude-code,codex,opencode,alan-code
   --limit <n>       Only the n most recent sessions
   --json            Machine-readable output
   --offline         Don't fetch live prices; use the cached or bundled list
   --port <n>        Dashboard port (default 4477)
+
+PR cost options
+  --base <ref>      Base ref for the commit range (default: origin/HEAD, main or master)
+  --head <ref>      Head ref (default: HEAD)
+  --pr <n>          Pull request to comment on (default: the current branch's PR)
+  --dry-run         Print the comment instead of posting it
 
 Replay options (needs OPENROUTER_API_KEY, or AGENTBILL_BASE_URL + AGENTBILL_API_KEY for any OpenAI-compatible API)
   --model <id>      Open model that replays the steps (default deepseek/deepseek-v4.1-flash)
@@ -182,6 +190,9 @@ async function main() {
       offline: { type: 'boolean' },
       port: { type: 'string' },
       anonymize: { type: 'boolean' },
+      base: { type: 'string' },
+      head: { type: 'string' },
+      pr: { type: 'string' },
       model: { type: 'string' },
       judge: { type: 'string' },
       steps: { type: 'string' },
@@ -202,9 +213,52 @@ async function main() {
     return serve({ port: Number(values.port ?? 4477), load: () => load(values) });
   }
 
+  if (cmd === 'pr-cost') {
+    const { commitsInRange, resolveBaseRef, extractCommitCosts, summariseCosts, renderComment, findPrNumber, postPrComment } =
+      await import('./pr.ts');
+    const cwd = process.cwd();
+    const base = resolveBaseRef(cwd, values.base as string | undefined);
+    const head = (values.head as string) ?? 'HEAD';
+    const summary = summariseCosts(extractCommitCosts(commitsInRange(cwd, base, head)));
+    if (values.json) {
+      console.log(JSON.stringify(summary, null, 2));
+      return;
+    }
+    const body = renderComment(summary);
+    const pr = values.pr ? Number(values.pr) : findPrNumber(cwd);
+    if (values['dry-run'] || !pr) {
+      if (!values['dry-run']) console.error('agentbill: no pull request detected; printing the comment instead');
+      console.log(body);
+      return;
+    }
+    const ok = postPrComment(cwd, pr, body);
+    console.log(ok ? `agentbill: posted the cost summary to PR #${pr}` : `agentbill: failed to post to PR #${pr}`);
+    if (!ok) process.exitCode = 1;
+    return;
+  }
+
+  if (cmd === 'hook') {
+    const { installHook, appendTrailer } = await import('./hook.ts');
+    const sub = positionals[1];
+    if (sub === 'install') {
+      const cliPath = resolve(process.argv[1] ?? 'dist/cli.js');
+      console.log(`Installed prepare-commit-msg hook at ${installHook(cliPath)}`);
+      return;
+    }
+    if (sub === 'prepare-commit-msg') {
+      const file = positionals[2];
+      if (!file) throw new Error('hook prepare-commit-msg needs the commit message file');
+      const res = await appendTrailer(file, positionals[3]);
+      if (res.added) console.error(`agentbill: added ${res.trailer}`);
+      else if (process.env.AGENTBILL_HOOK_DEBUG) console.error(`agentbill: skipped trailer (${res.reason})`);
+      return;
+    }
+    throw new Error('usage: agentbill hook install | agentbill hook prepare-commit-msg <file> [source] [sha]');
+  }
+
   const { reports, pricer } = await load(values);
   if (!reports.length) {
-    console.log('No agent sessions found. AgentBill reads ~/.claude/projects and ~/.codex/sessions.');
+    console.log('No agent sessions found. AgentBill reads ~/.claude/projects, ~/.codex/sessions, OpenCode and Alan Code logs.');
     return;
   }
 

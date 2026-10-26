@@ -2,6 +2,7 @@ import type { AgentKind, Session } from '../types.ts';
 import { listClaudeFiles, parseClaudeSession } from './claude.ts';
 import { listCodexFiles, parseCodexSession } from './codex.ts';
 import { listOpenCodeFiles, parseOpenCodeSession } from './opencode.ts';
+import { listAlanFiles, parseAlanSession } from './alan.ts';
 import type { FoundFile } from './jsonl.ts';
 
 export interface LoadOptions {
@@ -17,6 +18,7 @@ const sources: { agent: AgentKind; list: () => FoundFile[]; parse: (f: string) =
   { agent: 'claude-code', list: listClaudeFiles, parse: parseClaudeSession },
   { agent: 'codex', list: listCodexFiles, parse: parseCodexSession },
   { agent: 'opencode', list: listOpenCodeFiles, parse: parseOpenCodeSession },
+  { agent: 'alan-code', list: listAlanFiles, parse: parseAlanSession },
 ];
 
 const norm = (p: string) => p.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();

@@ -1,0 +1,36 @@
+name: AgentBill PR cost
+description: Read "Agent-Cost:" commit trailers in the PR range and post one cost summary comment.
+branding:
+  icon: dollar-sign
+  color: green
+
+inputs:
+  base:
+    description: Base ref to diff against. Defaults to the repository's default branch.
+    required: false
+    default: ''
+  github-token:
+    description: Token used to post the pull request comment.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Post agent cost summary
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token || github.token }}
+        BASE_REF: ${{ inputs.base }}
+      run: |
+        cd "$GITHUB_ACTION_PATH/.."
+        if [ -n "$BASE_REF" ]; then
+          node src/cli.ts pr-cost --base "$BASE_REF"
+        else
+          node src/cli.ts pr-cost
+        fi

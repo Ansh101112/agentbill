@@ -91,6 +91,25 @@ Tools:
 
 Add it to Claude Code, Codex, OpenCode or Alan (Settings, Plugins, MCP, Add custom connector).
 
+### Commit trailers and PR cost
+
+Record what each commit's agent session cost, then let the pull request show the
+total:
+
+```bash
+agentbill hook install            # adds a prepare-commit-msg hook to this repo
+git commit -m "Add parser"        # hook appends: Agent-Cost: $1.23 (deepseek/deepseek-v4.1-flash, 12 calls)
+agentbill pr-cost                 # posts one summary comment on the current PR
+```
+
+`pr-cost` reads every `Agent-Cost:` trailer in the range, totals them, and posts
+one comment. Use `--dry-run` to print it instead, `--base <ref>` to choose the
+range, `--pr <n>` to pick a PR, or `--json` for the raw numbers. It posts through
+the GitHub CLI (`gh`); without `gh` (or without a PR) the comment is printed.
+
+There is also a composite action in [action/](action/README.md) that runs
+`pr-cost` on every pull request.
+
 ## How it works
 
 ```

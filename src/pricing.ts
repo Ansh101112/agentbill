@@ -72,6 +72,8 @@ export function canonicalModel(raw: string): string {
   m = m.replace(/^(?:fw|fireworks|litellm|bedrock|vertex|azure|openrouter)[-_/]/, '');
   m = m.replace(/^(?:us|eu|apac|global)\.(?:anthropic\.)?/, '').replace(/^anthropic\./, '');
   m = m.replace(/^[a-z-]+\//, '');
+  // Gateways can nest prefixes (alan/deepseek/deepseek-v4.1-flash): keep the model segment.
+  m = m.replace(/^(?:[^/]+\/)+/, '');
   m = m.replace(/-v\d+(?::\d+)?$/, '').replace(/@.*$/, '');
   m = m.replace(/-(?:pool|latest|preview|exp|fast|thinking)$/, '');
   m = m.replace(/-\d{8}$|-\d{4}-\d{2}-\d{2}$|-\d{4}$/, '');
