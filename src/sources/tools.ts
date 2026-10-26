@@ -32,16 +32,20 @@ export function classifyTool(name: string, input: unknown): Classified {
     case 'Read':
     case 'NotebookRead':
     case 'read_file':
+    case 'read':          // OpenCode v2
     case 'view_image': {
-      const p = str('file_path') ?? str('path') ?? str('notebook_path') ?? '';
+      const p = str('file_path') ?? str('filePath') ?? str('path') ?? str('notebook_path') ?? '';
       const range = i.offset != null || i.limit != null ? ` [${i.offset ?? 0}+${i.limit ?? ''}]` : '';
       return { kind: 'read', target: p + range, path: p };
     }
     case 'Write':
     case 'Edit':
     case 'MultiEdit':
-    case 'NotebookEdit': {
-      const p = str('file_path') ?? str('notebook_path') ?? '';
+    case 'NotebookEdit':
+    case 'edit':          // OpenCode v2
+    case 'write':         // OpenCode v2
+    case 'patch': {       // OpenCode v2
+      const p = str('file_path') ?? str('filePath') ?? str('notebook_path') ?? str('path') ?? '';
       return { kind: 'write', target: p, path: p };
     }
     case 'apply_patch': {
@@ -50,6 +54,7 @@ export function classifyTool(name: string, input: unknown): Classified {
       return { kind: 'write', target: p, path: p };
     }
     case 'Bash':
+    case 'bash':          // Alan Code
     case 'PowerShell':
     case 'shell':
     case 'exec_command':
@@ -61,10 +66,15 @@ export function classifyTool(name: string, input: unknown): Classified {
     case 'Grep':
     case 'Glob':
     case 'LS':
+    case 'grep':          // Alan Code
+    case 'glob':          // Alan Code
+    case 'ls':
       return { kind: 'search', target: shorten(`${str('pattern') ?? str('path') ?? ''} ${str('path') ?? ''}`) };
     case 'WebFetch':
     case 'WebSearch':
     case 'web_search':
+    case 'webfetch':      // Alan Code
+    case 'websearch':
       return { kind: 'web', target: shorten(str('url') ?? str('query') ?? '') };
     case 'Agent':
     case 'Task':
