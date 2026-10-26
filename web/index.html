@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentBill</title>
+<meta name="description" content="What your coding agents really cost, where the tokens leak, and what open models would charge for the same work.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #F4F6F9;
+  --sheet: #FFFFFF;
+  --ink: #17222E;
+  --ink-2: #4A5868;
+  --ink-3: #7A8796;
+  --rule: #D5DCE4;
+  --rule-strong: #A9B6C4;
+  --spend: #2F6FC0;
+  --leak: #C2306A;
+  --save: #1E7A5A;
+  --focus: #2F6FC0;
+  --wide: 'wdth' 125;
+  --narrow: 'wdth' 75;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #17212D; --sheet: #1D2936; --ink: #E6ECF2; --ink-2: #A3B1C0; --ink-3: #7D8B9A;
+    --rule: #2C3A4A; --rule-strong: #46586B; --spend: #5B93DE; --leak: #E0588C; --save: #4FBF92; --focus: #5B93DE;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #17212D; --sheet: #1D2936; --ink: #E6ECF2; --ink-2: #A3B1C0; --ink-3: #7D8B9A;
+  --rule: #2C3A4A; --rule-strong: #46586B; --spend: #5B93DE; --leak: #E0588C; --save: #4FBF92; --focus: #5B93DE;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 400 15px/1.5 Archivo, ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* Masthead */
+header.mast { border-bottom: 1px solid var(--rule); background: var(--sheet); }
+header.mast .wrap { display: flex; align-items: center; gap: 16px; min-height: 64px; flex-wrap: wrap; }
+.mark { font-weight: 800; font-variation-settings: var(--wide); font-size: 21px; letter-spacing: -0.01em; text-decoration: none; }
+.mark span { color: var(--leak); }
+.mast .meta { color: var(--ink-3); font-size: 13px; }
+.mast .actions { margin-left: auto; display: flex; gap: 8px; }
+.btn {
+  border: 1px solid var(--rule-strong); background: transparent; border-radius: 6px;
+  padding: 6px 12px; font-size: 13px; cursor: pointer;
+}
+.btn:hover { border-color: var(--ink-2); }
+
+/* Statement hero */
+.statement { padding: 48px 0 32px; }
+.statement h1 {
+  margin: 0 0 28px; max-width: 22ch;
+  font-weight: 700; font-variation-settings: var(--wide); font-size: clamp(30px, 4.4vw, 50px);
+  line-height: 1.08; letter-spacing: -0.02em;
+}
+.ledger { max-width: 720px; margin: 0; padding: 0; list-style: none; border-top: 2px solid var(--ink); }
+.ledger li {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 12px;
+  padding: 14px 0; border-bottom: 1px solid var(--rule);
+}
+.ledger .what { font-weight: 600; }
+.ledger .what small { display: block; font-weight: 400; color: var(--ink-3); font-size: 13px; }
+.ledger .lead { border-bottom: 2px dotted var(--rule-strong); transform: translateY(-5px); min-width: 24px; }
+.ledger .amt { font-weight: 700; font-variation-settings: var(--wide); font-size: 22px; text-align: right; }
+.ledger li.total { border-bottom: 2px solid var(--ink); }
+.ledger li.total .amt { font-size: 30px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: 1px; }
+
+/* Sections */
+section.block { padding: 36px 0; border-top: 1px solid var(--rule); }
+section.block > h2 {
+  margin: 0 0 6px; font-weight: 700; font-variation-settings: var(--wide); font-size: 22px; letter-spacing: -0.01em;
+}
+section.block > p.lede { margin: 0 0 20px; color: var(--ink-2); max-width: 68ch; }
+.split { display: grid; grid-template-columns: 1.35fr 1fr; gap: 40px; }
+@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+
+/* Charts */
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.axis text { fill: var(--ink-3); font-size: 11px; }
+.axis line, .grid line { stroke: var(--rule); stroke-width: 1; }
+.legend { display: flex; gap: 18px; font-size: 13px; color: var(--ink-2); margin: 0 0 10px; flex-wrap: wrap; }
+.tip {
+  position: fixed; pointer-events: none; z-index: 20; opacity: 0; transition: opacity .08s;
+  background: var(--ink); color: var(--paper); border-radius: 6px; padding: 8px 10px; font-size: 12.5px; line-height: 1.4;
+  max-width: 300px; box-shadow: 0 6px 20px rgba(10, 20, 30, .25);
+}
+.tip b { font-weight: 700; }
+.tip .row { display: flex; justify-content: space-between; gap: 14px; }
+
+/* Leak list */
+.leaks { list-style: none; margin: 0; padding: 0; }
+.leaks li { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.leaks .name { font-weight: 600; }
+.leaks .amt { font-weight: 700; text-align: right; }
+.leaks .why { grid-column: 1 / -1; color: var(--ink-2); font-size: 13.5px; }
+.leaks .bar { grid-column: 1 / -1; height: 6px; background: var(--rule); border-radius: 3px; overflow: hidden; }
+.leaks .bar i { display: block; height: 100%; background: var(--leak); border-radius: 3px; }
+.leaks li.advice .amt, .leaks li.advice .name { color: var(--ink-3); }
+.leaks li.advice .bar i { background: var(--rule-strong); }
+
+/* Findings */
+.findings { list-style: none; margin: 0; padding: 0; counter-reset: f; }
+.findings li { display: grid; grid-template-columns: 84px 1fr; gap: 2px 16px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.findings .amt { font-weight: 700; color: var(--ink); text-align: right; grid-row: span 2; }
+.findings .t { font-weight: 600; }
+.findings .d { color: var(--ink-2); font-size: 13.5px; }
+.findings .d a { color: var(--spend); text-decoration: none; }
+.findings .d a:hover { text-decoration: underline; }
+.findings li.adv .amt { color: var(--ink-3); }
+.more { margin-top: 14px; }
+
+/* Table */
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { font-weight: 600; color: var(--ink-2); font-size: 13px; border-bottom: 2px solid var(--ink); }
+th button { all: unset; cursor: pointer; }
+th button:focus-visible { outline: 2px solid var(--focus); }
+th[aria-sort="descending"] button::after { content: ' ▾'; }
+th[aria-sort="ascending"] button::after { content: ' ▴'; }
+td.num, th.num { text-align: right; }
+td.title { white-space: normal; min-width: 220px; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: color-mix(in srgb, var(--spend) 6%, transparent); }
+.agent { font-size: 12px; color: var(--ink-2); border: 1px solid var(--rule-strong); border-radius: 4px; padding: 1px 6px; }
+.leakcell { color: var(--leak); font-weight: 600; }
+
+/* Open models */
+.models { list-style: none; margin: 0; padding: 0; }
+.models li { display: grid; grid-template-columns: minmax(180px, 260px) 1fr 110px; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.models .bar { height: 14px; border-radius: 0 4px 4px 0; background: var(--spend); }
+.models li.actual .bar { background: var(--ink-3); }
+.models .amt { text-align: right; font-weight: 700; }
+.models .amt small { display: block; font-weight: 500; color: var(--save); font-size: 12.5px; }
+@media (max-width: 640px) { .models li { grid-template-columns: 1fr 90px; } .models .bar { grid-column: 1 / -1; grid-row: 2; } }
+code, .cmd { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: 13px; }
+.cmd { display: inline-block; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 4px 10px; }
+
+/* Session view */
+.back { margin: 28px 0 0; }
+.sess-head { padding: 20px 0 8px; }
+.sess-head h1 { margin: 0 0 6px; font-weight: 700; font-variation-settings: var(--wide); font-size: clamp(26px, 3.4vw, 38px); line-height: 1.1; letter-spacing: -0.02em; }
+.sess-head .sub { color: var(--ink-3); font-size: 14px; }
+.facts { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule); margin: 22px 0 8px; }
+.facts div { padding: 12px 14px 12px 0; }
+.facts div + div { border-left: 1px solid var(--rule); padding-left: 14px; }
+.facts b { display: block; font-size: 24px; font-weight: 700; font-variation-settings: var(--wide); }
+.facts span { color: var(--ink-3); font-size: 13px; }
+@media (max-width: 640px) { .facts { grid-template-columns: repeat(2, 1fr); } .facts div:nth-child(3) { border-left: 0; padding-left: 0; } }
+.lanes text { fill: var(--ink-2); font-size: 11.5px; }
+.lanes .lbl { fill: var(--ink); }
+.empty { padding: 60px 0; color: var(--ink-2); max-width: 60ch; }
+footer { padding: 32px 0 48px; color: var(--ink-3); font-size: 13px; border-top: 1px solid var(--rule); }
+@media (max-width: 520px) { .wrap { padding: 0 16px; } .ledger .amt { font-size: 18px; } .ledger li.total .amt { font-size: 22px; } }
+</style>
+</head>
+<body>
+<header class="mast">
+  <div class="wrap">
+    <a class="mark" href="#/">Agent<span>Bill</span></a>
+    <span class="meta" id="mastMeta">Reading your agent logs…</span>
+    <div class="actions">
+      <button class="btn" id="themeBtn" type="button" aria-label="Switch colour theme">Dark</button>
+      <button class="btn" id="refreshBtn" type="button" hidden>Re-read logs</button>
+    </div>
+  </div>
+</header>
+<main id="app" class="wrap" aria-live="polite"></main>
+<footer><div class="wrap" id="foot">AgentBill reads Claude Code and Codex session logs on your machine. Nothing leaves it.</div></footer>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+'use strict';
+const $ = (s, el = document) => el.querySelector(s);
+const app = $('#app');
+const tip = $('#tip');
+let DATA = null;          // { summary, details?, anonymized? }
+let MODE = 'server';      // 'server' (agentbill serve) or 'static' (exported demo)
+
+// ---------- formatting ----------
+const money = (n) => {
+  if (!isFinite(n)) return '—';
+  if (n === 0) return '$0';
+  if (Math.abs(n) >= 100) return '$' + Math.round(n).toLocaleString('en-US');
+  if (Math.abs(n) >= 1) return '$' + n.toFixed(2);
+  return '$' + n.toFixed(3);
+};
+const moneyExact = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const tok = (n) => n >= 1e9 ? (n / 1e9).toFixed(1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(Math.round(n));
+const day = (ts) => new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+const dayYear = (ts) => new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const time = (ts) => new Date(ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pct = (a, b) => b ? Math.round((a / b) * 100) : 0;
+const AGENTS = { 'claude-code': 'Claude Code', codex: 'Codex', opencode: 'OpenCode', 'alan-code': 'Alan Code' };
+const KINDS = {
+  carry: ['Heavy outputs carried forward', 'A big tool output stays in the context and is paid for again on every later call.'],
+  'cache-rebuild': ['Prompt cache rebuilt', 'After an idle gap or a change early in the prompt, the whole context was written to cache again instead of read.'],
+  reread: ['Unchanged files read again', 'The agent re-read a file it already had in context and had not edited since.'],
+  'retry-loop': ['Retry loops', 'Three or more failed calls of the same tool in a row.'],
+  'context-bloat': ['Very long contexts', 'Advice only, not counted as a leak: calls that ran far above what most tasks need.'],
+};
+
+// ---------- tooltip ----------
+function showTip(html, ev) {
+  tip.innerHTML = html;
+  tip.style.opacity = 1;
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - pad;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - pad;
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+}
+const hideTip = () => { tip.style.opacity = 0; };
+const svgEl = (tag, attrs = {}) => {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+};
+const niceMax = (v) => {
+  if (v <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  for (const m of [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (m * p >= v) return m * p;
+  return 10 * p;
+};
+
+// ---------- data ----------
+async function loadSummary() {
+  try {
+    const r = await fetch('/api/summary', { cache: 'no-store' });
+    if (r.ok && (r.headers.get('content-type') || '').includes('json')) {
+      MODE = 'server';
+      DATA = { summary: await r.json() };
+      return;
+    }
+  } catch {}
+  const r = await fetch('data.json', { cache: 'no-store' });
+  if (!r.ok) throw new Error('No data found. Run `agentbill serve`, or put an exported data.json next to this page.');
+  MODE = 'static';
+  DATA = await r.json();
+}
+async function loadDetail(id) {
+  if (MODE === 'static') return DATA.details?.[id] ?? null;
+  const r = await fetch('/api/session/' + encodeURIComponent(id));
+  return r.ok ? r.json() : null;
+}
+
+// ---------- overview ----------
+function renderOverview() {
+  const s = DATA.summary;
+  const t = s.totals;
+  const best = [...s.whatIf].sort((a, b) => a.cost - b.cost)[0];
+  const cacheShare = t.usage.cacheRead / Math.max(1, t.usage.cacheRead + t.usage.input + t.usage.cacheWrite);
+  const agents = s.byAgent.map((a) => `${AGENTS[a.agent] ?? a.agent} (${a.sessions})`).join(', ');
+
+  app.innerHTML = `
+  <div class="statement">
+    <h1>Your coding agents spent ${money(t.cost)} across ${t.sessions} sessions.</h1>
+    <ul class="ledger">
+      <li><span class="what"><span class="swatch" style="background:var(--spend)"></span>Work done<small>${tok(t.calls)} model calls and ${tok(t.toolCalls)} tool calls from ${esc(agents)}</small></span><span class="lead"></span><span class="amt">${moneyExact(t.cost - t.waste)}</span></li>
+      <li><span class="what"><span class="swatch" style="background:var(--leak)"></span>Leaked<small>${pct(t.waste, t.cost)}% of the bill went to patterns you can avoid</small></span><span class="lead"></span><span class="amt">${moneyExact(t.waste)}</span></li>
+      <li class="total"><span class="what">Total at list prices<small>${Math.round(cacheShare * 100)}% of input tokens were served from the prompt cache</small></span><span class="lead"></span><span class="amt">${moneyExact(t.cost)}</span></li>
+      ${best ? `<li><span class="what"><span class="swatch" style="background:var(--save)"></span>Same tokens on ${esc(best.priceId.split('/')[1])}<small>Upper bound. The replay agent checks whether it would make the same moves.</small></span><span class="lead"></span><span class="amt">${moneyExact(best.cost)}</span></li>` : ''}
+    </ul>
+  </div>
+
+  <section class="block" aria-labelledby="h-daily">
+    <h2 id="h-daily">Spend by day</h2>
+    <p class="lede">Each bar is one day of agent work. The top segment is the part that leaked.</p>
+    <div class="legend"><span><span class="swatch" style="background:var(--spend)"></span>Work done</span><span><span class="swatch" style="background:var(--leak)"></span>Leaked</span></div>
+    <div class="chart" id="daily"></div>
+  </section>
+
+  <section class="block" aria-labelledby="h-leaks">
+    <div class="split">
+      <div>
+        <h2 id="h-leaks">Where it leaked</h2>
+        <p class="lede">Every pattern is priced from the tokens it actually re-sent, at the rate that call paid.</p>
+        <ul class="leaks" id="leaks"></ul>
+      </div>
+      <div>
+        <h2>By model</h2>
+        <p class="lede">What each model cost, priced by its OpenRouter list price.</p>
+        <ul class="leaks" id="bymodel"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="h-find">
+    <h2 id="h-find">Biggest single leaks</h2>
+    <p class="lede">Open a session to see when it happened and what was riding along.</p>
+    <ol class="findings" id="findings"></ol>
+    <button class="btn more" id="moreFindings" type="button">Show 10 more</button>
+  </section>
+
+  <section class="block" aria-labelledby="h-sess">
+    <h2 id="h-sess">Sessions</h2>
+    <p class="lede">Select a session to open its statement.</p>
+    <div class="tablewrap"><table id="sessions">
+      <thead><tr>
+        <th scope="col" data-k="startedAt" aria-sort="descending"><button type="button">Started</button></th>
+        <th scope="col" data-k="title"><button type="button">Session</button></th>
+        <th scope="col" data-k="agent"><button type="button">Agent</button></th>
+        <th scope="col" class="num" data-k="calls"><button type="button">Calls</button></th>
+        <th scope="col" class="num" data-k="peakContext"><button type="button">Peak context</button></th>
+        <th scope="col" class="num" data-k="cost"><button type="button">Spent</button></th>
+        <th scope="col" class="num" data-k="waste"><button type="button">Leaked</button></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section class="block" aria-labelledby="h-open">
+    <h2 id="h-open">The same tokens on open models</h2>
+    <p class="lede">Your actual bill against open-weight models at their list prices, for the same token counts. This is a ceiling on savings, not a promise: run <span class="cmd">agentbill replay</span> to have an open model redo your expensive steps and see how often it makes the same move.</p>
+    <ul class="models" id="openmodels"></ul>
+  </section>`;
+
+  drawDaily(s.byDay);
+  drawLeaks(s.findingsByKind, t.cost);
+  drawByModel(s.byModel);
+  drawFindings(s.topFindings);
+  drawSessions(s.sessions);
+  drawOpenModels(s.whatIf, t.cost);
+}
+
+function renderChrome() {
+  const s = DATA.summary;
+  $('#mastMeta').textContent = `Statement for ${dayYear(s.range.from)} to ${dayYear(s.range.to)}`;
+  $('#foot').innerHTML = `Prices from OpenRouter (${s.priceSource === 'snapshot' ? 'bundled snapshot' : 'live list'}, ${dayYear(s.priceDate)}), at list price per token. ` +
+    `Subscriptions and gateways may bill differently. ${DATA.anonymized ? 'This demo uses anonymised real sessions.' : 'Nothing leaves your machine.'}`;
+}
+
+function drawDaily(days) {
+  const host = $('#daily');
+  if (!days.length) { host.innerHTML = '<p class="empty">No spend recorded yet.</p>'; return; }
+  // Fill gaps so empty days read as empty.
+  const byDay = new Map(days.map((d) => [d.day, d]));
+  const start = new Date(days[0].day + 'T00:00:00Z'), end = new Date(days[days.length - 1].day + 'T00:00:00Z');
+  const all = [];
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    const k = d.toISOString().slice(0, 10);
+    all.push(byDay.get(k) ?? { day: k, cost: 0, waste: 0 });
+  }
+  const W = 1000, H = 260, m = { l: 48, r: 8, t: 10, b: 26 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const max = niceMax(Math.max(...all.map((d) => d.cost)));
+  const bw = iw / all.length, gap = Math.min(4, bw * 0.25);
+  const y = (v) => m.t + ih - (v / max) * ih;
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Daily agent spend, split into work done and leaked' });
+  const grid = svgEl('g', { class: 'grid axis' });
+  for (let i = 0; i <= 4; i++) {
+    const v = (max / 4) * i, yy = y(v);
+    grid.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: yy, y2: yy }));
+    const tx = svgEl('text', { x: m.l - 8, y: yy + 4, 'text-anchor': 'end' });
+    tx.textContent = money(v);
+    grid.append(tx);
+  }
+  svg.append(grid);
+  const labelEvery = Math.ceil(all.length / 10);
+  all.forEach((d, i) => {
+    const x = m.l + i * bw + gap / 2, w = Math.max(1, bw - gap);
+    const leak = Math.min(d.waste, d.cost), work = d.cost - leak;
+    const g = svgEl('g');
+    const roundTop = (x0, y0, w0, h0, r) => {
+      r = Math.min(r, w0 / 2, h0);
+      return `M${x0},${y0 + h0}V${y0 + r}Q${x0},${y0} ${x0 + r},${y0}H${x0 + w0 - r}Q${x0 + w0},${y0} ${x0 + w0},${y0 + r}V${y0 + h0}Z`;
+    };
+    if (work > 0) {
+      const h = ih * (work / max);
+      g.append(leak > 0 ? svgEl('rect', { x, y: y(work), width: w, height: Math.max(0, h), fill: 'var(--spend)' }) : svgEl('path', { d: roundTop(x, y(work), w, h, 4), fill: 'var(--spend)' }));
+    }
+    if (leak > 0) {
+      const h = ih * (leak / max) - (work > 0 ? 2 : 0);
+      if (h > 0) g.append(svgEl('path', { d: roundTop(x, y(d.cost), w, h, 4), fill: 'var(--leak)' }));
+    }
+    const hit = svgEl('rect', { x: m.l + i * bw, y: m.t, width: bw, height: ih, fill: 'transparent' });
+    hit.addEventListener('mousemove', (ev) => showTip(`<b>${dayYear(Date.parse(d.day))}</b><div class="row"><span>Spent</span><span>${moneyExact(d.cost)}</span></div><div class="row"><span>Leaked</span><span>${moneyExact(leak)}</span></div>`, ev));
+    hit.addEventListener('mouseleave', hideTip);
+    g.append(hit);
+    svg.append(g);
+    if (i % labelEvery === 0) {
+      const tx = svgEl('text', { x: m.l + i * bw + bw / 2, y: H - 6, 'text-anchor': 'middle', class: 'axis' });
+      tx.textContent = day(Date.parse(d.day));
+      tx.setAttribute('fill', 'var(--ink-3)');
+      tx.setAttribute('font-size', '11');
+      svg.append(tx);
+    }
+  });
+  host.replaceChildren(svg);
+}
+
+function drawLeaks(kinds, total) {
+  const max = Math.max(...kinds.filter((k) => !k.advisory).map((k) => k.cost), 1);
+  $('#leaks').innerHTML = kinds.map((k) => {
+    const [name, why] = KINDS[k.kind] ?? [k.kind, ''];
+    const w = k.advisory ? 100 : Math.max(2, (k.cost / max) * 100);
+    return `<li class="${k.advisory ? 'advice' : ''}"><span class="name">${esc(name)} <span style="color:var(--ink-3);font-weight:400">${k.count}×</span></span><span class="amt">${k.advisory ? 'up to ' : ''}${money(k.cost)}</span>
+      <span class="bar" aria-hidden="true"><i style="width:${w}%"></i></span><span class="why">${esc(why)}</span></li>`;
+  }).join('') || '<li>No leaks found.</li>';
+}
+
+function drawByModel(models) {
+  const max = Math.max(...models.map((m) => m.cost), 1);
+  $('#bymodel').innerHTML = models.slice(0, 7).map((m) => `<li><span class="name">${esc(m.model)}${m.pricedAs ? '' : ' <span style="color:var(--ink-3);font-weight:400">(no price found)</span>'}</span><span class="amt">${money(m.cost)}</span>
+    <span class="bar" aria-hidden="true"><i style="width:${Math.max(1, (m.cost / max) * 100)}%;background:var(--spend)"></i></span>
+    <span class="why">${m.calls.toLocaleString('en-US')} calls, ${tok(m.usage.input + m.usage.cacheRead + m.usage.cacheWrite)} input and ${tok(m.usage.output)} output tokens</span></li>`).join('');
+}
+
+let findingsShown = 10;
+function drawFindings(list) {
+  const render = () => {
+    $('#findings').innerHTML = list.slice(0, findingsShown).map((f) => `<li><span class="amt">${money(f.cost)}</span><span class="t">${esc(f.title)}</span>
+      <span class="d">${esc(f.detail)} <a href="#/session/${encodeURIComponent(f.sessionId)}">${esc(f.sessionTitle)}</a>, ${time(f.ts)}</span></li>`).join('');
+    $('#moreFindings').hidden = findingsShown >= list.length;
+  };
+  $('#moreFindings').onclick = () => { findingsShown += 10; render(); };
+  render();
+}
+
+let sortKey = 'startedAt', sortDir = -1;
+function drawSessions(rows) {
+  const tbody = $('#sessions tbody');
+  const render = () => {
+    const sorted = [...rows].sort((a, b) => (a[sortKey] > b[sortKey] ? 1 : a[sortKey] < b[sortKey] ? -1 : 0) * sortDir);
+    tbody.innerHTML = sorted.map((r) => `<tr tabindex="0" data-id="${esc(r.id)}">
+      <td>${time(r.startedAt)}</td><td class="title">${esc(r.title)}<br><span style="color:var(--ink-3);font-size:12.5px">${esc(r.project)}</span></td>
+      <td><span class="agent">${esc(AGENTS[r.agent] ?? r.agent)}</span></td><td class="num">${r.calls.toLocaleString('en-US')}</td>
+      <td class="num">${tok(r.peakContext)}</td><td class="num">${money(r.cost)}</td><td class="num leakcell">${r.waste > 0.005 ? money(r.waste) : '—'}</td></tr>`).join('');
+    document.querySelectorAll('#sessions th').forEach((th) => th.setAttribute('aria-sort', th.dataset.k === sortKey ? (sortDir < 0 ? 'descending' : 'ascending') : 'none'));
+  };
+  document.querySelectorAll('#sessions th button').forEach((b) => b.onclick = () => {
+    const k = b.parentElement.dataset.k;
+    if (k === sortKey) sortDir = -sortDir; else { sortKey = k; sortDir = k === 'title' || k === 'agent' ? 1 : -1; }
+    render();
+  });
+  const open = (tr) => tr && (location.hash = '#/session/' + encodeURIComponent(tr.dataset.id));
+  tbody.onclick = (e) => open(e.target.closest('tr'));
+  tbody.onkeydown = (e) => { if (e.key === 'Enter') open(e.target.closest('tr')); };
+  render();
+}
+
+function drawOpenModels(whatIf, actual) {
+  const rows = [{ priceId: 'Your actual bill', cost: actual, saved: 0, actual: true }, ...[...whatIf].sort((a, b) => a.cost - b.cost)];
+  const max = Math.max(...rows.map((r) => r.cost), 1);
+  $('#openmodels').innerHTML = rows.map((r) => `<li class="${r.actual ? 'actual' : ''}"><span>${esc(r.actual ? r.priceId : r.priceId)}</span>
+    <span><span class="bar" style="display:block;width:${Math.max(0.6, (r.cost / max) * 100)}%"></span></span>
+    <span class="amt">${money(r.cost)}${r.actual ? '' : `<small>${pct(r.saved, actual)}% less</small>`}</span></li>`).join('');
+}
+
+// ---------- session statement ----------
+async function renderSession(id) {
+  app.innerHTML = '<p class="empty">Opening the session…</p>';
+  const d = await loadDetail(id);
+  if (!d) {
+    app.innerHTML = `<p class="back"><a class="btn" href="#/">Back to the statement</a></p><p class="empty">${MODE === 'static' ? 'This demo includes timelines for the 16 most expensive sessions only. Pick one of those, or run AgentBill on your own logs to see every session.' : 'That session is no longer in your logs.'}</p>`;
+    return;
+  }
+  const r = d.row;
+  const counted = d.findings.filter((f) => !f.advisory);
+  app.innerHTML = `
+  <p class="back"><a class="btn" href="#/">Back to the statement</a></p>
+  <div class="sess-head">
+    <h1>${esc(r.title)}</h1>
+    <div class="sub">${esc(AGENTS[r.agent] ?? r.agent)} in ${esc(r.project)}${r.branch ? ' on ' + esc(r.branch) : ''}, ${time(r.startedAt)} to ${time(r.endedAt)}</div>
+  </div>
+  <div class="facts">
+    <div><b>${moneyExact(r.cost)}</b><span>spent</span></div>
+    <div><b style="color:var(--leak)">${moneyExact(r.waste)}</b><span>leaked (${pct(r.waste, r.cost)}%)</span></div>
+    <div><b>${r.calls.toLocaleString('en-US')}</b><span>model calls for ${r.prompts} prompts</span></div>
+    <div><b>${tok(r.peakContext)}</b><span>peak context</span></div>
+  </div>
+
+  <section class="block" style="border-top:0" aria-labelledby="h-ctx">
+    <h2 id="h-ctx">What every call carried</h2>
+    <p class="lede">The curve is the context sent on each call. Below it, each bar is one heavy tool output, drawn from the call that read it to the last call that still carried it. You pay for that output again on every call it spans.</p>
+    <div class="legend"><span><span class="swatch" style="background:var(--spend)"></span>Context per call</span><span><span class="swatch" style="background:var(--leak)"></span>Carried output, or a leak event</span><span><span class="swatch" style="background:var(--ink-3)"></span>Compaction</span></div>
+    <div class="chart" id="ctx"></div>
+  </section>
+
+  <section class="block" aria-labelledby="h-sf">
+    <div class="split">
+      <div>
+        <h2 id="h-sf">Leaks in this session</h2>
+        <p class="lede">${counted.length ? `${counted.length} findings, largest first.` : 'Nothing avoidable found here.'}</p>
+        <ol class="findings">${d.findings.slice(0, 14).map((f) => `<li class="${f.advisory ? 'adv' : ''}"><span class="amt">${f.advisory ? 'up to ' : ''}${money(f.cost)}</span><span class="t">${esc(f.title)}</span><span class="d">${esc(f.detail)} ${time(f.ts)}.</span></li>`).join('')}</ol>
+      </div>
+      <div>
+        <h2>Heaviest outputs</h2>
+        <p class="lede">Tokens times the calls that re-sent them.</p>
+        <ol class="findings">${d.topCarried.slice(0, 10).map((t) => `<li><span class="amt">${money(t.carryCost)}</span><span class="t">${esc(t.name)}: ${esc(t.target)}</span><span class="d">${tok(t.tokens)} tokens re-sent on ${t.carriedBy} later calls</span></li>`).join('')}</ol>
+      </div>
+    </div>
+  </section>`;
+  drawContext(d);
+}
+
+function drawContext(d) {
+  const host = $('#ctx');
+  const pts = d.timeline;
+  if (!pts.length) { host.innerHTML = '<p class="empty">No main-loop calls in this session.</p>'; return; }
+  const n = pts.length;
+  const bands = d.bands;
+  const W = 1000, laneH = 22, m = { l: 56, r: 12, t: 16, b: 10 };
+  const areaH = 230, lanesTop = m.t + areaH + 50;
+  const H = lanesTop + Math.max(1, bands.length) * laneH + 28;
+  const iw = W - m.l - m.r;
+  const x = (i) => m.l + (n <= 1 ? 0 : (i / (n - 1)) * iw);
+  const max = niceMax(Math.max(...pts.map((p) => p.context)));
+  const y = (v) => m.t + areaH - (v / max) * areaH;
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Context size per model call, with heavy tool outputs shown as bars across the calls that carried them' });
+
+  const grid = svgEl('g', { class: 'grid axis' });
+  for (let i = 0; i <= 4; i++) {
+    const v = (max / 4) * i;
+    grid.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v) }));
+    const tx = svgEl('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end' });
+    tx.textContent = tok(v);
+    grid.append(tx);
+  }
+  svg.append(grid);
+
+  // Downsample to at most ~700 points, keeping each bucket's peak.
+  const step = Math.max(1, Math.ceil(n / 700));
+  let line = '';
+  for (let i = 0; i < n; i += step) {
+    let pk = 0;
+    for (let j = i; j < Math.min(n, i + step); j++) pk = Math.max(pk, pts[j].context);
+    line += (line ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(pk).toFixed(1);
+  }
+  const area = line + `L${x(n - 1)},${y(0)}L${x(0)},${y(0)}Z`;
+  svg.append(svgEl('path', { d: area, fill: 'var(--spend)', 'fill-opacity': 0.13 }));
+  svg.append(svgEl('path', { d: line, fill: 'none', stroke: 'var(--spend)', 'stroke-width': 2, 'stroke-linejoin': 'round' }));
+
+  for (const ci of d.compactionIndex) {
+    const xx = x(Math.min(n - 1, ci));
+    svg.append(svgEl('line', { x1: xx, x2: xx, y1: m.t, y2: lanesTop + bands.length * laneH, stroke: 'var(--ink-3)', 'stroke-width': 1.5, 'stroke-dasharray': '4 4' }));
+    const tx = svgEl('text', { x: xx + 6, y: m.t + 10, fill: 'var(--ink-3)', 'font-size': 11 });
+    tx.textContent = 'compacted';
+    svg.append(tx);
+  }
+
+  // Leak events as ticks along the baseline.
+  for (const mk of d.markers) {
+    const xx = x(mk.index);
+    const tick = svgEl('path', { d: `M${xx - 5},${y(0) + 14}L${xx},${y(0) + 5}L${xx + 5},${y(0) + 14}Z`, fill: 'var(--leak)', stroke: 'var(--sheet)', 'stroke-width': 2 });
+    tick.addEventListener('mousemove', (ev) => showTip(`<b>${esc(mk.title)}</b><div class="row"><span>Cost</span><span>${moneyExact(mk.cost)}</span></div>`, ev));
+    tick.addEventListener('mouseleave', hideTip);
+    svg.append(tick);
+  }
+
+  // Carried-output lanes, aligned to the same call axis.
+  const lanes = svgEl('g', { class: 'lanes' });
+  const head = svgEl('text', { x: m.l, y: lanesTop - 6, fill: 'var(--ink-2)', 'font-size': 12, 'font-weight': 600 });
+  head.textContent = bands.length ? 'Heavy outputs and how long they rode along' : 'No heavy outputs were carried forward';
+  lanes.append(head);
+  const maxCost = Math.max(...bands.map((b) => b.cost), 0.0001);
+  bands.forEach((b, i) => {
+    const yy = lanesTop + i * laneH;
+    const x0 = x(b.from), x1 = Math.max(x0 + 3, x(Math.max(b.from, b.to - 1)));
+    const bar = svgEl('rect', { x: x0, y: yy + 4, width: x1 - x0, height: laneH - 8, rx: 3, fill: 'var(--leak)', 'fill-opacity': (0.35 + 0.65 * (b.cost / maxCost)).toFixed(2) });
+    bar.addEventListener('mousemove', (ev) => showTip(`<b>${esc(b.tool)}: ${esc(b.label)}</b><div class="row"><span>Size</span><span>${tok(b.tokens)} tokens</span></div><div class="row"><span>Re-sent on</span><span>${b.to - b.from} calls</span></div><div class="row"><span>Cost of carrying it</span><span>${moneyExact(b.cost)}</span></div>`, ev));
+    bar.addEventListener('mouseleave', hideTip);
+    lanes.append(bar);
+    const lbl = svgEl('text', { x: x0 > W / 2 ? x0 - 8 : x1 + 8, y: yy + laneH / 2 + 4, 'text-anchor': x0 > W / 2 ? 'end' : 'start', class: 'lbl' });
+    lbl.textContent = `${money(b.cost)}  ${b.label}`;
+    lanes.append(lbl);
+  });
+  svg.append(lanes);
+
+  const ax = svgEl('text', { x: W - m.r, y: H - 6, 'text-anchor': 'end', fill: 'var(--ink-3)', 'font-size': 11 });
+  ax.textContent = `main-agent calls in order, 1 to ${n.toLocaleString('en-US')} (subagent calls not drawn)`;
+  svg.append(ax);
+
+  // Crosshair over the curve.
+  const cross = svgEl('line', { y1: m.t, y2: y(0), stroke: 'var(--ink-2)', 'stroke-width': 1, opacity: 0 });
+  const dot = svgEl('circle', { r: 5, fill: 'var(--spend)', stroke: 'var(--sheet)', 'stroke-width': 2, opacity: 0 });
+  svg.append(cross, dot);
+  const hit = svgEl('rect', { x: m.l, y: m.t, width: iw, height: areaH, fill: 'transparent' });
+  hit.addEventListener('mousemove', (ev) => {
+    const box = svg.getBoundingClientRect();
+    const sx = ((ev.clientX - box.left) / box.width) * W;
+    const i = Math.max(0, Math.min(n - 1, Math.round(((sx - m.l) / iw) * (n - 1))));
+    const p = pts[i];
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('opacity', 1);
+    dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(p.context)); dot.setAttribute('opacity', 1);
+    const tools = p.tools.length ? esc([...new Set(p.tools)].join(', ')) : 'no tools';
+    showTip(`<b>Call ${i + 1}</b>, ${time(p.ts)}<div class="row"><span>Model</span><span>${esc(p.model)}</span></div><div class="row"><span>Context</span><span>${tok(p.context)} tokens</span></div><div class="row"><span>This call cost</span><span>${moneyExact(p.cost)}</span></div><div class="row"><span>Asked for</span><span>${tools}</span></div>`, ev);
+  });
+  hit.addEventListener('mouseleave', () => { hideTip(); cross.setAttribute('opacity', 0); dot.setAttribute('opacity', 0); });
+  svg.append(hit);
+  host.replaceChildren(svg);
+}
+
+// ---------- routing, theme, refresh ----------
+async function route() {
+  hideTip();
+  const m = location.hash.match(/^#\/session\/(.+)$/);
+  if (m) await renderSession(decodeURIComponent(m[1]));
+  else renderOverview();
+  window.scrollTo(0, 0);
+}
+
+function initTheme() {
+  const btn = $('#themeBtn');
+  const current = () => document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const label = () => { btn.textContent = current() === 'dark' ? 'Light' : 'Dark'; };
+  try { const saved = localStorage.getItem('agentbill-theme'); if (saved) document.documentElement.dataset.theme = saved; } catch {}
+  label();
+  btn.onclick = () => {
+    const next = current() === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('agentbill-theme', next); } catch {}
+    label();
+  };
+}
+
+async function main() {
+  initTheme();
+  try {
+    await loadSummary();
+  } catch (e) {
+    app.innerHTML = `<p class="empty">${esc(e.message)}</p>`;
+    return;
+  }
+  if (MODE === 'server') {
+    const rb = $('#refreshBtn');
+    rb.hidden = false;
+    rb.onclick = async () => {
+      rb.disabled = true; rb.textContent = 'Reading logs…';
+      await fetch('/api/refresh', { method: 'POST' });
+      await loadSummary();
+      renderChrome();
+      rb.disabled = false; rb.textContent = 'Re-read logs';
+      route();
+    };
+  }
+  if (!DATA.summary.sessions.length) {
+    app.innerHTML = '<p class="empty">No agent sessions found yet. AgentBill reads ~/.claude/projects and ~/.codex/sessions. Run a coding agent, then select Re-read logs.</p>';
+    return;
+  }
+  renderChrome();
+  addEventListener('hashchange', route);
+  route();
+}
+main();
+</script>
+</body>
+</html>

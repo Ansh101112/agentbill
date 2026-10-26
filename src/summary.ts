@@ -162,6 +162,23 @@ export interface SessionDetail {
   topCarried: SessionReport['tools'];
   findings: Finding[];
   toolMix: { kind: string; count: number; tokens: number; carryCost: number }[];
+  /** Main-loop call index range each heavy output rode along for (the session chart's bands). */
+  bands: { label: string; tool: string; tokens: number; from: number; to: number; cost: number }[];
+  /** Findings placed on the main-loop call index axis. */
+  markers: { index: number; kind: string; title: string; cost: number }[];
+  /** Main-loop call indexes where the context was compacted. */
+  compactionIndex: number[];
+}
+
+function indexAfter(main: { ts: number }[], ts: number): number {
+  let lo = 0;
+  let hi = main.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (main[mid]!.ts <= ts) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
 }
 
 export function sessionDetail(r: SessionReport): SessionDetail {
@@ -174,10 +191,32 @@ export function sessionDetail(r: SessionReport): SessionDetail {
     m.carryCost += t.carryCost;
     mix.set(t.kind, m);
   }
+  const main = r.session.calls.filter((c) => !c.sidechain);
+  const topCarried = [...r.tools].sort((a, b) => b.carryCost - a.carryCost).slice(0, 15);
+  const bands = topCarried
+    .filter((t) => t.carriedBy > 0 && t.tokens > 0)
+    .slice(0, 8)
+    .map((t) => {
+      const from = indexAfter(main, t.ts);
+      return {
+        label: t.target.replace(/\\/g, '/').split('/').slice(-2).join('/'),
+        tool: t.name,
+        tokens: t.tokens,
+        from,
+        to: Math.min(main.length, from + t.carriedBy),
+        cost: t.carryCost,
+      };
+    });
+  const markers = r.findings
+    .filter((f) => !f.advisory && f.kind !== 'carry')
+    .map((f) => ({ index: Math.min(main.length - 1, indexAfter(main, f.ts - 1)), kind: f.kind, title: f.title, cost: f.cost }));
   return {
+    bands,
+    markers,
+    compactionIndex: r.session.compactions.map((ts) => indexAfter(main, ts)),
     row: sessionRow(r),
     byModel: r.byModel,
-    timeline: r.session.calls.map((c) => ({
+    timeline: main.map((c) => ({
       ts: c.ts,
       model: c.model,
       context: contextTokens(c.usage),
@@ -187,7 +226,7 @@ export function sessionDetail(r: SessionReport): SessionDetail {
       tools: c.toolCallIds.map((id) => toolsById.get(id)?.name ?? '?'),
     })),
     compactions: r.session.compactions,
-    topCarried: [...r.tools].sort((a, b) => b.carryCost - a.carryCost).slice(0, 15),
+    topCarried,
     findings: r.findings,
     toolMix: [...mix].map(([kind, v]) => ({ kind, ...v })).sort((a, b) => b.carryCost - a.carryCost),
   };

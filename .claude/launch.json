@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "agentbill",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["src/cli.ts", "serve", "--port", "4477"],
+      "port": 4477
+    }
+  ]
+}
