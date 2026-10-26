@@ -28,11 +28,12 @@ On my own history (137 sessions over 11 weeks across Claude Code, Codex and Alan
 ```bash
 git clone https://github.com/Ansh101112/agentbill && cd agentbill
 npm install && npm run build
-node dist/cli.js            # the report
-node dist/cli.js serve      # the dashboard on http://localhost:4477
+npm link                    # puts the `agentbill` command on your PATH
+agentbill                   # the report
+agentbill serve             # the dashboard on http://localhost:4477
 ```
 
-Needs Node 22.18 or newer. During development you can run the TypeScript directly: `node src/cli.ts`.
+Needs Node 22.18 or newer. Without `npm link`, use `node dist/cli.js` in place of `agentbill`. During development you can run the TypeScript directly: `node src/cli.ts`.
 
 ## What you get
 
