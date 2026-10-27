@@ -61,6 +61,8 @@ header.mast .wrap { display: flex; align-items: center; gap: 16px; min-height: 6
   padding: 6px 12px; font-size: 13px; cursor: pointer;
 }
 .btn:hover { border-color: var(--ink-2); }
+a.btn { color: inherit; text-decoration: none; }
+footer a { color: inherit; }
 
 /* Statement hero */
 .statement { padding: 48px 0 32px; }
@@ -180,6 +182,7 @@ footer { padding: 32px 0 48px; color: var(--ink-3); font-size: 13px; border-top:
     <div class="actions">
       <button class="btn" id="themeBtn" type="button" aria-label="Switch colour theme">Dark</button>
       <button class="btn" id="refreshBtn" type="button" hidden>Re-read logs</button>
+      <a class="btn" id="repoBtn" href="https://github.com/Ansh101112/agentbill" hidden>GitHub</a>
     </div>
   </div>
 </header>
@@ -382,7 +385,12 @@ function renderChrome() {
   const s = DATA.summary;
   $('#mastMeta').textContent = `Statement for ${dayYear(s.range.from)} to ${dayYear(s.range.to)}`;
   $('#foot').innerHTML = `Prices from OpenRouter (${s.priceSource === 'snapshot' ? 'bundled snapshot' : 'live list'}, ${dayYear(s.priceDate)}), at list price per token. ` +
-    `Subscriptions and gateways may bill differently. ${DATA.anonymized ? 'This demo uses anonymised real sessions.' : 'Nothing leaves your machine.'}`;
+    `Subscriptions and gateways may bill differently. ${DATA.anonymized ? 'This demo uses anonymised real sessions.' : 'Nothing leaves your machine.'}` +
+    (DATA.anonymized
+      ? ' Run it on your own logs: <a href="https://github.com/Ansh101112/agentbill">source and setup on GitHub</a> · <a href="https://x.com/Realthugus/status/2115086753489092613">demo video</a>.'
+      : '');
+  // The hosted demo is where people arrive without the repo, so it links back to it.
+  $('#repoBtn').hidden = !DATA.anonymized;
 }
 
 function drawDaily(days) {
