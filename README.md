@@ -8,7 +8,7 @@ No proxy, no account, no setup. Nothing leaves your machine unless you run `repl
 
 Built solo in 30 hours for **OpenFire by Alan AI** (Oct 26–27, 2026), with Alan agents doing a share of the work (see [Built with Alan](#built-with-alan)).
 
-**Live demo:** [agentbill-topaz.vercel.app](https://agentbill-topaz.vercel.app) (137 anonymised real sessions, no install) · **Demo video:** _link goes here_
+**Live demo:** [agentbill-topaz.vercel.app](https://agentbill-topaz.vercel.app) (137 anonymised real sessions, no install) · **Demo video (1:31):** [on X](https://x.com/Realthugus/status/2115086753489092613), the OpenFire submission post, covering what it does, how it works and how Alan was used
 
 ![The statement: spend, leaks, and what open models would charge](docs/img/statement.png)
 
@@ -151,7 +151,7 @@ Design notes are in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Built with Alan
 
-The core (cost model, waste detectors, dashboard, replay agent, MCP server) was written by hand with a coding assistant. Five well-specified tickets were handed to Alan Code agents on open models (DeepSeek V4 Pro) inside the Alan desktop app, then reviewed like pull requests:
+The core (cost model, waste detectors, dashboard, replay agent, MCP server) was written by hand with a coding assistant. Five well-specified tickets were handed to Alan Code agents on open models (DeepSeek V4 Pro and DeepSeek V4.1 Flash) inside the Alan desktop app, then reviewed like pull requests:
 
 | Ticket | What Alan built | Review |
 |---|---|---|
@@ -161,7 +161,7 @@ The core (cost model, waste detectors, dashboard, replay agent, MCP server) was 
 | T4 | `agentbill pr-cost`, commit-trailer hook, GitHub Action | Merged as delivered |
 | T5 | Budget-guard skill and weekly report automation for Alan | Merged as delivered |
 
-AgentBill reads Alan's own logs, so it prices the Alan sessions that built it. Details, prompts and usage per run are in [docs/ALAN.md](docs/ALAN.md). The Alan skill is in [alan/skill/SKILL.md](alan/skill/SKILL.md).
+AgentBill reads Alan's own logs, so it prices the Alan sessions that built it: `agentbill sessions --agent alan-code` shows 3 sessions and 128 model calls, **$0.62 in total** at list prices. The loop then closes the other way: the budget-guard skill lets an Alan agent check its own bill mid-task and decide whether to keep going, compact or stop. Details, prompts and usage per run are in [docs/ALAN.md](docs/ALAN.md). The Alan skill is in [alan/skill/SKILL.md](alan/skill/SKILL.md).
 
 The hackathon checklist is in [docs/HACKATHON.md](docs/HACKATHON.md), the build plan in [docs/PLAN.md](docs/PLAN.md), and changes in [CHANGELOG.md](CHANGELOG.md).
 
