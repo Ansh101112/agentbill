@@ -165,6 +165,10 @@ AgentBill reads Alan's own logs, so it prices the Alan sessions that built it: `
 
 The hackathon checklist is in [docs/HACKATHON.md](docs/HACKATHON.md), the build plan in [docs/PLAN.md](docs/PLAN.md), and changes in [CHANGELOG.md](CHANGELOG.md).
 
+## [![M8ven Score](https://m8ven.ai/badge/mcp/ansh101112-agentbill-1l3rbd?v=df136a13372abf08c0a05253f30f04f3)](https://m8ven.ai/mcp/ansh101112-agentbill-1l3rbd?s=readme)
+
+
+
 ## Development
 
 ```bash
